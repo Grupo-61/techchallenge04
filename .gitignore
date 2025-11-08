@@ -1,7 +1,22 @@
-# Ignore Python virtual environments
+# Ignore ambientes virtuais Python
 venv/
 .venv/
 env/
 .env/
 ENV/
 venv.bak/
+
+# Ignore arquivos de cache do Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore modelos treinados 
+*.pkl
+*.h5
+
+# Ignore arquivos compactados
+*.zip
+*.tar.gz
+*.rar

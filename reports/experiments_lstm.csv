@@ -1,2 +1,0 @@
-nr_model,seq_length,batch_size,hidden_size,num_layers,lr,dropout_prob,num_epochs,loss_function,data_inicial,data_final,mae,mse,rmse,dac
-1,30,32,32,2,0.001,0.1,30,MSE,2025-11-04 22:44:13,2025-11-04 22:44:17,0.49993592500686646,0.4016507863998413,0.6337592601776123,0.48770491803278687

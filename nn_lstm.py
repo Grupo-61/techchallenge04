@@ -54,25 +54,35 @@ def create_sequences_multivariate(data, seq_length):
         y.append(data[i + seq_length, 0])
     return np.array(X), np.array(y)
 
+
 # Construindo features
-def build_features(data):
+
+# Estratégia 1: Apenas preço de fechamento
+def build_features_1(data):
+    columns= ['Close']
+    return data[columns]
+
+# Estratégia 2: Preço de abertura, máxima, mínima, fechamento e volume
+def build_features_2(data):
+    columns= ['Open', 'High', 'Low', 'Close']
+    return data[columns]
+
+# Estratégia 3: Preço de fechamento, volume, retorno diário e volatilidade dos últimos 5 dias
+def build_features_3(data):
     data['daily_return'] = data['Close'].pct_change()
     data['5-day_volatility'] = data['daily_return'].rolling(window=5).apply(lambda x: volatilidadeUltimosNDias(x, 5))
-    data['10-day_volatility'] = data['daily_return'].rolling(window=10).apply(lambda x: volatilidadeUltimosNDias(x, 10))
-    data['15-day_volatility'] = data['daily_return'].rolling(window=15).apply(lambda x: volatilidadeUltimosNDias(x, 15))
-    columns= ['Close', 'daily_return', '5-day_volatility', '10-day_volatility', '15-day_volatility']
-    #columns= ['Close', 'daily_return']
+    columns= ['Close', 'daily_return', '5-day_volatility']
     return data[columns]
 
 # Retorna dados treino e teste tratados/normalizados
-def return_train_test(data, seq_length):
+def return_train_test(data, seq_length, test_size):
 
   # Construindo a janela deslizante
   data = data.to_numpy()
   X_np, y_np = create_sequences_multivariate(data, seq_length)
 
   # Divide as sequências em Treino e Teste
-  train_size = int(len(X_np) * (1 - TEST_SIZE))
+  train_size = int(len(X_np) * (1 - test_size))
   X_train_np_raw, X_test_np_raw = X_np[:train_size], X_np[train_size:]
   y_train_np_raw, y_test_np_raw = y_np[:train_size], y_np[train_size:]
 
@@ -105,7 +115,7 @@ def return_train_test(data, seq_length):
   return X_train, y_train, X_test, y_test, train_size, scaler
 
 # Salvando Grafico predição
-def save_graph(data, caminho, seq_length, test_predictions, actual_prices, numero_modelo):
+def save_graph(data, caminho, seq_length, test_predictions, actual_prices, nr_modelo):
   # Plotagem
   plt.figure(figsize=(16, 9))
   plt.plot(data.index[train_size + seq_length:], actual_prices, label='Preço Real', color='blue')
@@ -177,33 +187,21 @@ class SimpleLSTM(nn.Module):
         out = self.fc(out[:, -1, :])
         return out
 
-###########################
-# COLETA E TRATAMENTO DE DADOS
-###########################
+# PARAMETOS PARA COLETA DE DADOS E TREINAMENTO
+#TICKER = 'ITUB4.SA'       # Ticker do Itaú na B3
+#START_DATE = '2015-01-01' # Data inicial do dataset
+#END_DATE = '2025-05-31'   # Data final do dataset
+#TEST_SIZE = 0.2           # 20% dos dados para teste
 
-TICKER = 'ITUB4.SA'       # Ticker do Itaú na B3
-START_DATE = '2015-01-01' # Data inicial do dataset
-END_DATE = '2024-12-31'   # Data final do dataset
-TEST_SIZE = 0.2           # 20% dos dados para teste
-
-# Coleta serie historica
-data = obtemDadosHistoricos(TICKER, START_DATE, END_DATE)
-
-# Contruindo features
-data= build_features(data)
-data= data[15:]
-data.values.reshape(-1, 1)
-print('\n')
-
-###########################
-# TREINAMENTO E AVALIAÇÃO DO MODELO
-###########################
-
-# Hiperparâmetros para tunning
+# PARAMETOS PARA COLETA DE DADOS E TREINAMENTO
 params= {
+    'TICKER': 'ITUB4.SA',             # Ticker do Itaú na B3    
+    'START_DATE': '2015-01-01',       # Data inicial do dataset
+    'END_DATE': '2025-05-31',         # Data final do dataset
+    'TEST_SIZE': 0.2,                 # 20% dos dados para teste
     'SEQ_LENGTH': [30,45],            # Tamanho da janela de observação (dias)
     'BATCH_SIZE': [32,64],            # Divisao em lotes de 30 ou 45 dias (SEQ_LENGTH)
-    'INPUT_SIZE': [5],                # Numero de features
+    #'INPUT_SIZE': [nr_features],      # Numero de features
     'HIDDEN_SIZE': [32,64],           # Numero neorônios camada oculta
     'NUM_LAYERS': [2, 3],             # Numero de camadas ocultas
     'LR': [0.001,0.002],              # Taxa de Aprendizado (Learning Rate)
@@ -213,154 +211,191 @@ params= {
     'OPTIMIZER': ['Adam', 'RMSprop'], # Otimizador
     }
 
-numero_modelo= 0    # Numero do modelo treinado
-dic_parametros= {}  # Dicionario para salvar parametros dos modelos
-caminho= './'       # Caminho para salvar modelos e experimentos
+# Itero sobre as estratégias
+for strategy in np.arange(1, 4):
 
-# Itero sobre seq_length
-for seq_length in params['SEQ_LENGTH']:
+    # COLETA E PREPARAÇÃO DOS DADOS
+        
+    # Obtenho dados históricos
+    data = obtemDadosHistoricos(params['TICKER'], params['START_DATE'], params['END_DATE'])
 
-  # Carrego dados de treino e teste tratados
-  X_train, y_train, X_test, y_test, train_size, scaler = return_train_test(data, seq_length)
+    # CONSTRUÇÃO DAS FEATURES SEGUNDO A ESTRATÉGIA ESCOLHIDA
 
-  # Itero sobre batch_size
-  for batch_size in params['BATCH_SIZE']:
+    # Estratégia 1: Apenas preço de fechamento
+    if strategy == 1:
+       data = build_features_1(data)
+    
+    # Estratégia 2: Preço de abertura, máxima, mínima, fechamento e volume
+    elif strategy == 2:
+       data = build_features_2(data)
+       
+    # Estratégia 3: Preço de fechamento, volume, retorno diário e volatilidade dos últimos 5 dias
+    elif strategy == 3:
+       data = build_features_3(data)
+       data= data[5:]
 
-    # Itero sobre input_size
-    for input_size in params['INPUT_SIZE']:
+    # Defino número de features
+    nr_features= data.shape[1]
+    params['INPUT_SIZE']= [nr_features]
 
-      # Itero sobre hidden_size
-      for hidden_size in params['HIDDEN_SIZE']:
+    # Exportando features para CSV    
+    data.to_csv(f'./data/data_features_strategy_{strategy}.csv')
+    data.values.reshape(-1, 1)
 
-        # Itero sobre num_layers
-        for num_layers in params['NUM_LAYERS']:
+    print(f'\nIniciando treinamento para estratégia {strategy} com {nr_features} features...\n')
+    print('\n')
 
-          # Itero sobre LR
-          for lr in params['LR']:
+    # TREINAMENTO E AVALIAÇÃO DO MODELO
 
-            # Itero sobre dropout_prob
-            for dropout_prob in params['DROPOUT_PROB']:
+    nr_modelo= 0        # Numero do modelo treinado
+    dic_parametros= {}  # Dicionario para salvar parametros dos modelos
+    caminho= './'       # Caminho para salvar modelos e experimentos
 
-              # Itero sobre num_epochs
-              for num_epochs in params['NUM_EPOCHS']:
+    # Itero sobre seq_length
+    for seq_length in params['SEQ_LENGTH']:
+      
+      # Defino test_size
+      test_size= params['TEST_SIZE']
 
-                # Itero sobre loss_function
-                for loss_function in params['LOSS_FUNCTION']:
+      # Carrego dados de treino e teste tratados
+      X_train, y_train, X_test, y_test, train_size, scaler = return_train_test(data, seq_length, test_size)
 
-                  # Carrego o DataLoader para treinamento
-                  train_dataset = StockDataset(X_train, y_train)
-                  train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+      # Itero sobre batch_size
+      for batch_size in params['BATCH_SIZE']:
 
-                  # Inicializa o modelo
-                  model = SimpleLSTM(input_size= input_size, 
-                                     hidden_size= hidden_size, 
-                                     num_layers= num_layers,
-                                     output_size= 1,
-                                     dropout_prob= dropout_prob)\
-                                      .to(DEVICE)
+        # Itero sobre input_size
+        for input_size in params['INPUT_SIZE']:
 
-                  # Defino Função de Perda
-                  if loss_function == 'MSE':
-                    criterion = nn.MSELoss()
-                  elif loss_function == 'MAE':
-                    criterion = nn.L1Loss()
+          # Itero sobre hidden_size
+          for hidden_size in params['HIDDEN_SIZE']:
 
-                  # Defino o otimizador
-                  optimizer = torch.optim.Adam(model.parameters(), lr=lr)                  
+            # Itero sobre num_layers
+            for num_layers in params['NUM_LAYERS']:
 
-                  
+              # Itero sobre LR
+              for lr in params['LR']:
 
-                  # TREINAMENTO DO MODELO
+                # Itero sobre dropout_prob
+                for dropout_prob in params['DROPOUT_PROB']:
 
-                  print(f'Iniciando treino com seq_length: {seq_length}, batch_size: {batch_size}, hidden_size: {hidden_size}, num_layers: {num_layers}, lr: {lr}, dropout_prob: {dropout_prob}, num_epochs: {num_epochs}, loss_function: {loss_function}')
+                  # Itero sobre num_epochs
+                  for num_epochs in params['NUM_EPOCHS']:
 
-                  # Obtenho data/hora inicio treinamento do modelo
-                  data_inicial = time.localtime()
-                  data_inicial = time.strftime("%Y-%m-%d %H:%M:%S", data_inicial)
+                    # Itero sobre loss_function
+                    for loss_function in params['LOSS_FUNCTION']:
 
-                  for epoch in range(num_epochs):
-                      model.train()
-                      for batch_X, batch_y in train_loader:
+                      # Carrego o DataLoader para treinamento
+                      train_dataset = StockDataset(X_train, y_train)
+                      train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-                          # batch_X e batch_y JÁ estão no dispositivo (DEVICE)
-                          batch_X = batch_X.squeeze(3)
-                          batch_y = batch_y.view(-1, 1)
+                      # Inicializa o modelo
+                      model = SimpleLSTM(input_size= input_size, 
+                                         hidden_size= hidden_size, 
+                                         num_layers= num_layers,
+                                         output_size= 1,
+                                         dropout_prob= dropout_prob)\
+                                          .to(DEVICE)
 
-                          # Forward pass
-                          outputs = model(batch_X)
-                          loss = criterion(outputs, batch_y)
+                      # Defino Função de Perda
+                      if loss_function == 'MSE':
+                        criterion = nn.MSELoss()
+                      elif loss_function == 'MAE':
+                        criterion = nn.L1Loss()
 
-                          # Backward and optimize
-                          optimizer.zero_grad()
-                          loss.backward()
-                          optimizer.step()
+                      # Defino o otimizador
+                      optimizer = torch.optim.Adam(model.parameters(), lr=lr)                      
 
-                      if (epoch + 1) % 10 == 0:
-                          print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+                      # TREINAMENTO DO MODELO
 
-                  # Obtenho data/hora final do treinamento do modelo
-                  data_final = time.localtime()
-                  data_final = time.strftime("%Y-%m-%d %H:%M:%S", data_final)
-                  
-                  # AVALIAÇÃO DO MODELO
+                      print(f'Iniciando treino com seq_length: {seq_length}, batch_size: {batch_size}, hidden_size: {hidden_size}, num_layers: {num_layers}, lr: {lr}, dropout_prob: {dropout_prob}, num_epochs: {num_epochs}, loss_function: {loss_function}')
 
-                  # Obtendo previsões no conjunto de teste
-                  test_predictions, actual_prices = model_evaluation(model, X_test, y_test)
+                      # Obtenho data/hora inicio treinamento do modelo
+                      data_inicial = time.localtime()
+                      data_inicial = time.strftime("%Y-%m-%d %H:%M:%S", data_inicial)
 
-                  # Medindo Erro Absoluto Médio (MAE)
-                  mae = mean_absolute_error(actual_prices, test_predictions)
+                      for epoch in range(num_epochs):
+                          model.train()
+                          for batch_X, batch_y in train_loader:
 
-                  # Medindo o Erro Quadrático Médio (MSE)
-                  mse = mean_squared_error(actual_prices, test_predictions)
+                              # batch_X e batch_y JÁ estão no dispositivo (DEVICE)
+                              batch_X = batch_X.squeeze(3)
+                              batch_y = batch_y.view(-1, 1)
 
-                  # Medindo o Erro Quadratico Médio da Regressão (RMSE)
-                  rmse = root_mean_squared_error(actual_prices, test_predictions)
+                              # Forward pass
+                              outputs = model(batch_X)
+                              loss = criterion(outputs, batch_y)
 
-                  # Medindo a Acurácia Direcional (DAC)
-                  dac = np.mean((np.sign(actual_prices[1:] - actual_prices[:-1]) == np.sign(test_predictions[1:] - test_predictions[:-1])).astype(int))
+                              # Backward and optimize
+                              optimizer.zero_grad()
+                              loss.backward()
+                              optimizer.step()
 
-                  # SALVANDO O MODELO E RESULTADOS
+                          if (epoch + 1) % 10 == 0:
+                              print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
 
-                  try:
-                    # Defino o numero do modelo
-                    numero_modelo= numero_modelo + 1
+                      # Obtenho data/hora final do treinamento do modelo
+                      data_final = time.localtime()
+                      data_final = time.strftime("%Y-%m-%d %H:%M:%S", data_final)
 
-                    # Definindo nome modelo .pkl
-                    nome_arquivo = caminho + f'models/modelo_lstm_{str(numero_modelo)}.pkl'
+                      # AVALIAÇÃO DO MODELO
 
-                    with open(nome_arquivo, 'wb') as arquivo:
+                      # Obtendo previsões no conjunto de teste
+                      test_predictions, actual_prices = model_evaluation(model, X_test, y_test)
 
-                      # Salvo arquivo .pkl do modelo
-                      pickle.dump(model, arquivo)
+                      # Medindo Erro Absoluto Médio (MAE)
+                      mae = mean_absolute_error(actual_prices, test_predictions)
 
-                      # Gravo os dados do experimento
-                      dic_parametros[numero_modelo] = {
-                          'nr_model': numero_modelo,
-                          'seq_length': seq_length,
-                          'batch_size': batch_size,
-                          'hidden_size': hidden_size,
-                          'num_layers': num_layers,
-                          'lr': lr,
-                          'dropout_prob': dropout_prob,
-                          'num_epochs': num_epochs,
-                          'loss_function': loss_function,
-                          'data_inicial': data_inicial,
-                          'data_final': data_final,
-                          'mae': mae,
-                          'mse': mse,
-                          'rmse': rmse,
-                          'dac': dac
-                      }
+                      # Medindo o Erro Quadrático Médio (MSE)
+                      mse = mean_squared_error(actual_prices, test_predictions)
 
-                      # Salvo .csv experiments
-                      df_experiments = pd.DataFrame(dic_parametros)
-                      df_experiments = df_experiments.T
-                      df_experiments.set_index('nr_model', inplace=True)
-                      df_experiments.to_csv(caminho + f'reports/experiments_lstm.csv')
+                      # Medindo o Erro Quadratico Médio da Regressão (RMSE)
+                      rmse = root_mean_squared_error(actual_prices, test_predictions)
 
-                      print(f"Treinamento concluído. Modelo salvo com sucesso em: {nome_arquivo}")
-                      print("\n")
+                      # Medindo a Acurácia Direcional (DAC)
+                      dac = np.mean((np.sign(actual_prices[1:] - actual_prices[:-1]) == np.sign(test_predictions[1:] - test_predictions[:-1])).astype(int))
 
-                  except Exception as e:
-                    print(f'Erro ao salvar o modelo {str(numero_modelo)}: {e}')
-                    print("\n")
+                      # SALVANDO O MODELO E RESULTADOS
+
+                      try:
+                        # Defino o numero do modelo
+                        nr_modelo= nr_modelo + 1
+
+                        # Definindo nome modelo .pkl
+                        nome_arquivo = caminho + f'experiments/strategy_{strategy}/models/modelo_lstm_{str(nr_modelo)}.pkl'
+
+                        with open(nome_arquivo, 'wb') as arquivo:
+
+                          # Salvo arquivo .pkl do modelo
+                          pickle.dump(model, arquivo)
+
+                          # Gravo os dados do experimento
+                          dic_parametros[nr_modelo] = {
+                              'nr_model': nr_modelo,
+                              'seq_length': seq_length,
+                              'batch_size': batch_size,
+                              'hidden_size': hidden_size,
+                              'num_layers': num_layers,
+                              'lr': lr,
+                              'dropout_prob': dropout_prob,
+                              'num_epochs': num_epochs,
+                              'loss_function': loss_function,
+                              'data_inicial': data_inicial,
+                              'data_final': data_final,
+                              'mae': mae,
+                              'mse': mse,
+                              'rmse': rmse,
+                              'dac': dac
+                          }
+
+                          # Salvo .csv experiments
+                          df_experiments = pd.DataFrame(dic_parametros)
+                          df_experiments = df_experiments.T
+                          df_experiments.set_index('nr_model', inplace=True)
+                          df_experiments.to_csv(caminho + f'reports/report_strategy_{strategy}_lstm.csv')
+
+                          print(f"Treinamento concluído. Modelo salvo com sucesso em: {nome_arquivo}")
+                          print("\n")
+
+                      except Exception as e:
+                        print(f'Erro ao salvar o modelo {str(nr_modelo)}: {e}')
+                        print("\n")
