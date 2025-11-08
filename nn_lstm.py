@@ -115,17 +115,17 @@ def return_train_test(data, seq_length, test_size):
   return X_train, y_train, X_test, y_test, train_size, scaler
 
 # Salvando Grafico predição
-def save_graph(data, caminho, seq_length, test_predictions, actual_prices, nr_modelo):
+def save_graph(ticker, data, caminho, seq_length, train_size, test_predictions, actual_prices):
+  
   # Plotagem
   plt.figure(figsize=(16, 9))
   plt.plot(data.index[train_size + seq_length:], actual_prices, label='Preço Real', color='blue')
   plt.plot(data.index[train_size + seq_length:], test_predictions, label='Previsão LSTM', color='red')
-  plt.title(f'Previsão de Preço de Fechamento do {TICKER} (LSTM)')
+  plt.title(f'Previsão de Preço de Fechamento do {ticker} (LSTM)')
   plt.xlabel('Data')
   plt.ylabel('Preço (R$)')
   plt.legend()
   plt.grid(True)
-
   plt.savefig(caminho, bbox_inches='tight')
   plt.close()
 
@@ -188,12 +188,6 @@ class SimpleLSTM(nn.Module):
         return out
 
 # PARAMETOS PARA COLETA DE DADOS E TREINAMENTO
-#TICKER = 'ITUB4.SA'       # Ticker do Itaú na B3
-#START_DATE = '2015-01-01' # Data inicial do dataset
-#END_DATE = '2025-05-31'   # Data final do dataset
-#TEST_SIZE = 0.2           # 20% dos dados para teste
-
-# PARAMETOS PARA COLETA DE DADOS E TREINAMENTO
 params= {
     'TICKER': 'ITUB4.SA',             # Ticker do Itaú na B3    
     'START_DATE': '2015-01-01',       # Data inicial do dataset
@@ -201,7 +195,6 @@ params= {
     'TEST_SIZE': 0.2,                 # 20% dos dados para teste
     'SEQ_LENGTH': [30,45],            # Tamanho da janela de observação (dias)
     'BATCH_SIZE': [32,64],            # Divisao em lotes de 30 ou 45 dias (SEQ_LENGTH)
-    #'INPUT_SIZE': [nr_features],      # Numero de features
     'HIDDEN_SIZE': [32,64],           # Numero neorônios camada oculta
     'NUM_LAYERS': [2, 3],             # Numero de camadas ocultas
     'LR': [0.001,0.002],              # Taxa de Aprendizado (Learning Rate)
@@ -239,7 +232,7 @@ for strategy in np.arange(1, 4):
     params['INPUT_SIZE']= [nr_features]
 
     # Exportando features para CSV    
-    data.to_csv(f'./data/data_features_strategy_{strategy}.csv')
+    data.to_csv(f'./features/features_strategy_{strategy}.csv')
     data.values.reshape(-1, 1)
 
     print(f'\nIniciando treinamento para estratégia {strategy} com {nr_features} features...\n')
