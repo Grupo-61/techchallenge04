@@ -7,7 +7,7 @@ for strategy in np.arange(1, 4):
     print(f"Avaliando estratégia {strategy}...")
 
     # Carrego o arquivo CSV correspondente à estratégia 
-    data = pd.read_csv(f"./reports/report_strategy_{strategy}_lstm.csv")    
+    data = pd.read_csv(f"./reports/all_params/all_report_strategy_{strategy}.csv")    
 
     # Obtenho mae minimo
     mae= data.loc[data['mae'] == data['mae'].min()]
@@ -25,5 +25,5 @@ for strategy in np.arange(1, 4):
     df_eval = pd.concat([mae, mse, rmse, dac]).drop_duplicates().reset_index(drop=True)
 
     # Salvo o arquivo CSV com os melhores resultados
-    df_eval.to_csv(f"./reports/best_report_strategy_{strategy}_lstm.csv", index=False) 
+    df_eval.to_csv(f"./reports/best_params/best_report_strategy_{strategy}.csv", index=False) 
     

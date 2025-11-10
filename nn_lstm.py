@@ -232,7 +232,7 @@ for strategy in np.arange(1, 4):
     params['INPUT_SIZE']= [nr_features]
 
     # Exportando features para CSV    
-    data.to_csv(f'./features/features_strategy_{strategy}.csv')
+    data.to_csv(f'./data/features/features_strategy_{strategy}.csv')
     data.values.reshape(-1, 1)
 
     print(f'\nIniciando treinamento para estratégia {strategy} com {nr_features} features...\n')
@@ -354,7 +354,7 @@ for strategy in np.arange(1, 4):
                         nr_modelo= nr_modelo + 1
 
                         # Definindo nome modelo .pkl
-                        nome_arquivo = caminho + f'experiments/strategy_{strategy}/models/modelo_lstm_{str(nr_modelo)}.pkl'
+                        nome_arquivo = caminho + f'models/strategy_{strategy}/modelo_lstm_{str(nr_modelo)}.pkl'
 
                         with open(nome_arquivo, 'wb') as arquivo:
 
@@ -384,7 +384,7 @@ for strategy in np.arange(1, 4):
                           df_experiments = pd.DataFrame(dic_parametros)
                           df_experiments = df_experiments.T
                           df_experiments.set_index('nr_model', inplace=True)
-                          df_experiments.to_csv(caminho + f'reports/report_strategy_{strategy}_lstm.csv')
+                          df_experiments.to_csv(caminho + f'reports/all_params/all_report_strategy_{strategy}.csv')
 
                           print(f"Treinamento concluído. Modelo salvo com sucesso em: {nome_arquivo}")
                           print("\n")

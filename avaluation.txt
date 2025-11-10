@@ -1,0 +1,7 @@
+Usando dispositivo: cuda
+Nome da GPU: NVIDIA GeForce MX150
+
+
+
+
+Obtendo dados de validação...
