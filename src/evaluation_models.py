@@ -1,10 +1,11 @@
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
 import yfinance as yf
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_absolute_error, mean_squared_error, root_mean_squared_error
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import root_mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 import pickle
@@ -57,7 +58,6 @@ class SimpleLSTM(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
 
-        # input_size=5 ('Close', 'daily_return', '5-day_volatility', '10-day_volatility', '15-day_volatility')
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
 
         # Camanda dropout (desliga neuronios)
@@ -73,25 +73,44 @@ class SimpleLSTM(nn.Module):
 
         # Passa o input pelo LSTM
         # out: [batch_size, seq_length, hidden_size]
-        out, _ = self.lstm(x, (h0, c0))
+        out, _ = self.lstm(x, (h0, c0))        
 
         # Pegamos apenas a saída do último passo da sequência (last time step)
         # out[:, -1, :] tem a forma [batch_size, hidden_size]
         out = self.fc(out[:, -1, :])
+
         return out
     
-# PARÂMETROS 
+# PARÂMETROS GERAIS
 
 TICKER = 'ITUB4.SA'       # Ticker do Itaú na B3
 START_DATE = '2025-06-01' # Data inicial do dataset
 END_DATE = '2025-10-31'   # Data final do dataset
-SEQ_LENGTH = 20           # Tamanho da janela de observação (dias)
-TEST_SIZE = 1             # 100% dos dados para teste
+NR_STRATEGY = 2           # Número da estratégia de features utilizada
 
-input_size= 4
-hidden_size= 128
-num_layers= 2
-dropout_prob= 0.2
+# Obtendo modelo ótimo salvo
+model_path= f'./reports/best_strategy_{NR_STRATEGY}.csv'
+model_df= pd.read_csv(model_path)
+NR_MODEL= int(model_df.iloc[0]['nr_model'])
+
+# Lendo numero de features do modelo salvo
+features= f'./data/features/strategy_{NR_STRATEGY}.csv'
+features_df= pd.read_csv(features)
+input_size= len(features_df.columns) -1 # Subtrai 1 para não contar a coluna Date
+
+# Lendo parâmetros do modelo salvo
+report= f'./reports/report_strategy_{NR_STRATEGY}.csv'
+params_df= pd.read_csv(report)
+params_df= params_df.iloc[NR_MODEL -1] 
+
+# Extraindo parâmetros
+seq_length = int(params_df['seq_length']) 
+hidden_size= int(params_df['hidden_size'])
+num_layers= int(params_df['num_layers'])
+dropout_prob= float(params_df['dropout_prob'])
+dias_futuros= int(params_df['dias_futuros'])
+
+print(f'\nModelo: {NR_MODEL} | seq_length: {seq_length} | hidden_size: {hidden_size} | num_layers: {num_layers} | dropout_prob: {dropout_prob}')
 
 # COLETA E PREPARAÇÃO DOS DADOS
 
@@ -103,17 +122,10 @@ data = build_features_2(data)
 
 # Construindo a janela deslizante
 data = data.to_numpy()
-#X, y = create_sequences_multivariate(data, SEQ_LENGTH)
-X, y= janelaDeslizanteNDias(data, SEQ_LENGTH, 5)
 
-print(f'\nX.shape: {X.shape}, y.shape: {y.shape}')
-
+X, y= janelaDeslizanteNDias(data, seq_length, dias_futuros)
 X_test_reshaped = X.reshape(-1, 1)
 y_test_reshaped = y.reshape(-1, 1)
-
-print(f'X_test_reshaped.shape: {X_test_reshaped.shape}, y_test_reshaped.shape: {y_test_reshaped.shape}')
-
-# Normalização dos dados de validação
 
 # Normalização nos dados de validação
 scaler = MinMaxScaler(feature_range=(-1, 1))
@@ -125,20 +137,16 @@ scaler.fit(X_test_reshaped)
 X_test_norm = scaler.transform(X_test_reshaped).reshape(X.shape)
 y_test_norm = scaler.transform(y.reshape(-1, 1))
 
-print(f'X_test_norm.shape: {X_test_norm.shape}, y_test_norm.shape: {y_test_norm.shape}')
-
 # Convertendo para tensores do PyTorch
 X_test = torch.from_numpy(X_test_norm).float().to(DEVICE).unsqueeze(-1)
 y_test = torch.from_numpy(y_test_norm).float().to(DEVICE).unsqueeze(1)
-
-print(f'X_test.shape: {X_test.shape}, y_test.shape: {y_test.shape}')
 
 # CARREGANDO MODELO TREINADO
 
 print("\nCarregando modelo treinado...")
 
 # Definindo o caminho do modelo salvo
-arquivo_modelo = f'./models/strategy_2/modelo_lstm_101.pkl'
+arquivo_modelo = f'./models/strategy_2/modelo_lstm_{NR_MODEL}.pkl'
 
 # Caso GPU disponível
 if torch.cuda.is_available():
