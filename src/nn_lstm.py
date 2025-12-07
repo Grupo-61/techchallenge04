@@ -169,7 +169,7 @@ params= {
 # Inicio do processo de treino
 
 # Itero sobre as estratégias
-for strategy in np.arange(2, 3):
+for strategy in np.arange(1, 7):
 
     # Download série histórica
     data = obtemDadosHistoricos(params['TICKER'], params['START_DATE'], params['END_DATE'])

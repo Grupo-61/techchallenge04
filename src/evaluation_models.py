@@ -86,7 +86,7 @@ class SimpleLSTM(nn.Module):
 TICKER = 'ITUB4.SA'       # Ticker do Itaú na B3
 START_DATE = '2025-06-01' # Data inicial do dataset
 END_DATE = '2025-10-31'   # Data final do dataset
-NR_STRATEGY = 2           # Número da estratégia de features utilizada
+NR_STRATEGY = 2           # Número da estratégia de features utilizada #
 
 # Obtendo modelo ótimo salvo
 model_path= f'./reports/best_strategy_{NR_STRATEGY}.csv'
