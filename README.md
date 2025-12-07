@@ -90,14 +90,15 @@ source venv/bin/activate  # No Windows: venv\Scripts\activate
 
 ## Instale as dependências
 
-
 ```
 pip install -r requirements.txt
 ```
 
+**Nota sobre GPU:** Certifique-se de que você possui os drivers da NVIDIA instalados e a versão do PyTorch compatível com o seu CUDA toolkit para habilitar a aceleração via GPU. Caso sua placa de vídeo Nvidia seja mais antiga talvez seja necessário instalar uma versão do Pytorch mais antiga. Como opção, teste o seguinte comando:
 
-**Nota sobre GPU:** Certifique-se de que você possui os drivers da NVIDIA instalados e a versão do PyTorch compatível com o seu CUDA toolkit para habilitar a aceleração via GPU.
-
+```
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
 
 ## 🚀 Como Executar (Reprodução)
 O pipeline deve ser executado seguindo a ordem lógica dos scripts contidos na pasta src.
@@ -105,7 +106,6 @@ O pipeline deve ser executado seguindo a ordem lógica dos scripts contidos na p
 
 ## 1. Treinamento do Modelo (GPU)
 Execute o script principal para treinar a rede LSTM. O script detectará automaticamente se uma GPU (CUDA) está disponível para acelerar o treinamento.
-
 
 ```
 python src/nn_lstm.py
@@ -128,11 +128,9 @@ python src/evaluation_reports.py
 ## 3. Avaliação Final
 Carregue o melhor modelo salvo em /models e realize a inferência nos dados de teste (dados nunca vistos pela rede).
 
-
 ```
 python src/evaluation_models.py
 ```
-
 
 ## 📊 Resultados
 O modelo é avaliado utilizando as métricas MAE, MSE e DAC. Atualmente, o melhor modelo configurado alcançou:
@@ -150,21 +148,7 @@ Acurácia Direcional (DAC): > 75%
 ## Vídeo de Apresentação no Youtube (Modelo LSTM)
 Para melhor compreensão da entrega , foi produzido um vídeo de apresentação no Youtube:
 
-[Link para a Vídeo](https://www.youtube.com/watch?v=xTFogDyhg9o)
-
-
-## Vídeo de Apresentação no Youtube (API Deploy)
-Para melhor compreensão da entrega , foi produzido um vídeo de apresentação no Youtube:
-
-
-[Link para a Vídeo](https://www.youtube.com/watch?v=xTFogDyhg9o)
-
-
-## Link Público da API (Deploy)
-Para o atendimento do Requisito 3, a aplicação foi implementada no StreamLit e pode ser acessada pelo link:
-
-
-[Link para a Aplicação](https://tech-challenge-3-grupo64.streamlit.app/)
+[Link para a Vídeo](https://youtu.be/_WMI-M6gzXY)
 
 
 ## ✒️ Autores

@@ -67,6 +67,3 @@ ipython_config.py
 *.joblib
 *.h5
 *.hdf5
-
-# --- Relatórios de Testes ---
-*.csv
