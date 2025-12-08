@@ -68,12 +68,43 @@ O arquivo nn_eda.ipynb contém uma análise EDA enxuta construída para seleçã
 ├── reports                     # Relatórios de performance dos modelos
 │   ├── report_strategy_X.csv   # Logs com parâmetros e métricas de todos os treinos
 │   └── best_strategy_X.csv     # Relatório filtrado com os melhores modelos
-└── src                         # Código fonte e scripts de execução
-    ├── strategy.py             # Definição das estratégias de Feature Engineering
-    ├── nn_lstm.py              # Script principal para treinamento da rede LSTM
-    ├── evaluation_reports.py   # Cria o relatório bes_strategy_X.csv organizando os melhores modelos e parametros
-    └── evaluation_models.py    # Le bes_strategy_X.csv carregando o melhor modelo e avalia nos dados de teste
+ └── src                         # Código fonte e scripts de execução
+     ├── strategy.py             # Definição das estratégias de Feature Engineering
+     ├── nn_lstm.py              # Script principal para treinamento da rede LSTM
+     ├── evaluation_reports.py   # Cria o relatório bes_strategy_X.csv organizando os melhores modelos e parametros
+     └── evaluation_models.py    # Le bes_strategy_X.csv carregando o melhor modelo e avalia nos dados de teste
+├── tests                       # Testes unitários e mocks para execução da suíte
+│   ├── test_evaluation_models.py
+│   ├── test_evaluation_reports.py
+│   ├── test_nn_lstm.py
+│   ├── conftest.py
+│   └── dummy_model_for_pickle.py
 ```
+
+
+## 🧪 Testes
+
+O repositório inclui uma pasta `tests/` com testes unitários leves que permitem validar as funções principais sem instalar dependências pesadas (há mocks em `tests/conftest.py`). Os arquivos principais são:
+
+- `tests/test_evaluation_models.py`: importa `src/evaluation_models.py` com monkeypatches; cria dinamicamente um pickle dummy em `models/strategy_2/modelo_lstm_1.pkl` durante o teste, valida funções puras (ex.: `build_features_2`, janelas deslizantes, `SimpleLSTM` forward) e remove o arquivo binário no teardown.
+- `tests/test_evaluation_reports.py`: previne execução do loop top-level (monkeypatch em `np.arange`) e verifica que `src/evaluation_reports.py` importa sem executar processamento de arquivos reais.
+- `tests/test_nn_lstm.py`: importa `src/nn_lstm.py` com monkeypatches para evitar loops de treino e chamadas de rede; testa `janelaDeslizanteNDias`, `retornaTreinoTesteNormalizado` e o forward do `SimpleLSTM`.
+- `tests/conftest.py`: configura mocks globais (um `torch` leve, `sklearn` simples, `matplotlib.pyplot` noop e `yfinance` dummy) para permitir execução rápida dos testes sem PyTorch e outras dependências pesadas.
+- `tests/dummy_model_for_pickle.py`: define a `DummyModel` usada para criar um pickle picklable durante os testes.
+
+Como rodar os testes localmente (recomendado em venv):
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install pytest numpy pandas
+python -m pytest -q
+```
+
+Observações:
+- Os testes criam temporariamente arquivos em `models/` durante a execução e removem esses artefatos ao final do teste (não há binários mantidos no repositório após os testes).
+- Se preferir rodar testes com dependências reais (PyTorch etc.), remova os mocks em `tests/conftest.py` e instale as bibliotecas necessárias.
 
 
 ## ⚙️ Instalação e Configuração
