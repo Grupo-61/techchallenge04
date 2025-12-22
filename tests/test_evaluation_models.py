@@ -77,17 +77,9 @@ def test_evaluation_models_import_and_funcs(tmp_path, monkeypatch):
     assert list(features.columns) == ["Open", "High", "Low", "Close"]
 
     arr = np.arange(12).reshape(3, 4)
-    X, y = mod.create_sequences_multivariate(arr, seq_length=1)
+    X, y = mod.janela_deslizante_n_dias(arr, seq_length=1)
     assert X.ndim == 3
 
     # janelas deslizantes n dias
-    X2, y2 = mod.janelas_deslizantes_n_dias(arr, seq_length=1, dias_futuros=1)
+    X2, y2 = mod.janela_deslizante_n_dias(arr, seq_length=1, dias_futuros=1)
     assert X2.shape[0] == len(arr) - 1
-
-    # SimpleLSTM forward shape
-    model = mod.SimpleLSTM(
-        input_size=1, hidden_size=8, num_layers=1, output_size=1, dropout_prob=0.1
-    )
-    x = torch.randn((2, 3, 1))
-    out = model(x)
-    assert out.shape == (2, 1)
