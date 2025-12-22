@@ -179,7 +179,7 @@ Acurácia Direcional (DAC): > 75%
 ## Vídeo de Apresentação no Youtube (Modelo LSTM)
 Para melhor compreensão da entrega , foi produzido um vídeo de apresentação no Youtube:
 
-[Link para a Vídeo](https://youtu.be/_WMI-M6gzXY)
+[Link para a Vídeo](https://youtu.be/9IsNFeJ7_90)
 
 
 ## ✒️ Autores
